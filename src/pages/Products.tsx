@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
-import { getAllProducts, createProduct, deleteProduct, uploadImage, type Product } from "../api/products";
+import { getProducts, createProduct, deleteProduct, uploadImage, type Product } from "../api/products";
 import { addToCart } from "../api/Cart";
 import { useAuth } from "../auth/AuthContext";
 
@@ -31,7 +31,7 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const data = await getAllProducts();
+      const data = await getProducts();
       setProducts(data);
       setError(null);
     } catch (err) {

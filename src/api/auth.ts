@@ -1,6 +1,5 @@
 // src/api/auth.ts
-import { API_ENDPOINTS, getAuthHeaders } from './config';
-
+import { API_ENDPOINTS } from './config';
 export interface LoginRequest {
   email: string;
   password: string;
