@@ -2,7 +2,7 @@ const isDevelopment = import.meta.env.MODE === 'development';
 
 export const API_BASE_URL = isDevelopment 
   ? 'http://localhost:5000'  
-  : import.meta.env.VITE_BACKEND_URL as string;
+  : (import.meta.env.VITE_BACKEND_URL || 'http://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com');
 
 export const API_ENDPOINTS = {
   AUTH: `${API_BASE_URL}/auth`,
@@ -15,7 +15,7 @@ export const API_ENDPOINTS = {
   BANKING: `${API_BASE_URL}/banking`,
 };
 
-export const REQUEST_TIMEOUT = 30000; // 30 seconds
+export const REQUEST_TIMEOUT = 30000;
 
 export const getAuthToken = (): string | null => {
   return localStorage.getItem('token');
