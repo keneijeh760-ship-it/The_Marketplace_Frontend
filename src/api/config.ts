@@ -2,7 +2,7 @@ const isDevelopment = import.meta.env.MODE === 'development';
 
 export const API_BASE_URL = isDevelopment 
   ? 'http://localhost:5000'  
-  : (import.meta.env.VITE_BACKEND_URL || 'http://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com');
+  : (import.meta.env.VITE_BACKEND_URL || 'https://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com');
 
 export const API_ENDPOINTS = {
   AUTH: `${API_BASE_URL}/auth`,
