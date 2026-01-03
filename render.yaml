@@ -1,10 +1,9 @@
 services:
-  - type: web
-    name: the-marketplace-frontend
-    env: static
+  - type: static
+    name: The_Marketplace_Frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     routes:
       - type: rewrite
-        source: /*
+        source: /.*
         destination: /index.html
