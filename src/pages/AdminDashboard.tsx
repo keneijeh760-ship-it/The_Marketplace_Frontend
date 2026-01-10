@@ -3,7 +3,6 @@ import Navbar from "./Navbar";
 import { 
   getDashboardStats, 
   getPendingEscrowOrders,
-  getOrdersByStatus,
   getAllUsers,
   getAllTransactions,
   type DashboardStats 
