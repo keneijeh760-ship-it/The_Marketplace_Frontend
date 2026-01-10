@@ -869,3 +869,48 @@ body {
 .product-card .btn-remove:hover {
   background: #c0392b;
 }
+
+/* Admin Dashboard Stats Cards */
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* WebSocket notification animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Admin nav link special styling */
+.nav-link[style*="border-left"] {
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+}
+
+.nav-link[style*="border-left"]:hover {
+  background: rgba(231, 76, 60, 0.3) !important;
+}

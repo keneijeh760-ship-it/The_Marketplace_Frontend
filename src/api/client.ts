@@ -1,8 +1,7 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL:
-    "http://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",  // ✅ Add fallback
 });
 
 api.interceptors.request.use((config) => {

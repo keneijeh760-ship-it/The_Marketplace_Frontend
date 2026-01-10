@@ -9,7 +9,7 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  accountNumber: Number;
+  accountNumber: number;
   bankName: string;
   initialBalance: number;
 }

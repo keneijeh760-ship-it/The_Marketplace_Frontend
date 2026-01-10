@@ -25,3 +25,8 @@ dist-ssr
 
 .env
 .env.local
+.env.*.local
+
+# But allow .env.development and .env.production
+!.env.development
+!.env.production

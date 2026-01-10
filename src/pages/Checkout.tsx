@@ -12,7 +12,7 @@ const Checkout = () => {
   
   const [shippingAddress, setShippingAddress] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("Credit Card");
+const [paymentMethod, setPaymentMethod] = useState("account_balance");
   const [sameAsShipping, setSameAsShipping] = useState(true);
   
   const navigate = useNavigate();
@@ -189,22 +189,22 @@ const Checkout = () => {
               <div className="form-group">
                 <label>Payment Method</label>
                 <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Debit Card">Debit Card</option>
-                  <option value="PayPal">PayPal</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                </select>
+  value={paymentMethod}
+  onChange={(e) => setPaymentMethod(e.target.value)}
+  required
+  style={{
+    width: "100%",
+    padding: "12px 16px",
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    fontSize: "14px",
+  }}
+>
+  <option value="account_balance">Account Balance</option>
+  <option value="credit_card">Credit Card</option>
+  <option value="debit_card">Debit Card</option>
+  <option value="paypal">PayPal</option>
+</select>
               </div>
 
               {error && <div className="error-message">{error}</div>}

@@ -23,6 +23,8 @@ export interface Order {
   shippingAddress: string;
   billingAddress: string;
   paymentMethod: string;
+  paymentStatus?: string;  // ✅ ADD THIS
+  escrowReleased?: boolean; 
 }
 
 export interface CheckoutRequest {
@@ -56,5 +58,16 @@ export const updateOrderStatus = async (
   status: string
 ): Promise<Order> => {
   const res = await api.patch(`/api/orders/${orderId}/status`, { status });
+  return res.data;
+};
+
+export const releaseEscrow = async (orderId: number): Promise<Order> => {
+  const res = await api.post(`/api/orders/${orderId}/release-escrow`);
+  return res.data;
+};
+
+// Refund order (admin only)
+export const refundOrder = async (orderId: number): Promise<Order> => {
+  const res = await api.post(`/api/orders/${orderId}/refund`);
   return res.data;
 };

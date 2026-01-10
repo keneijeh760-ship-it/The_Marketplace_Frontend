@@ -1,17 +1,14 @@
 // src/api/config.ts
 
-const isDevelopment = import.meta.env.MODE === 'development';
+// Temporarily force to use deployed backend
+const isDevelopment =  true;  // ⬅️ Change this to false
 
 export const API_BASE_URL = isDevelopment 
   ? 'http://localhost:5000'  
   : (import.meta.env.VITE_BACKEND_URL || 'http://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com');
 
-// Debug logging (remove after fixing)
-console.log('🔍 DEBUG INFO:');
-console.log('MODE:', import.meta.env.MODE);
-console.log('isDevelopment:', isDevelopment);
-console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
-console.log('API_BASE_URL:', API_BASE_URL);
+// Remove or comment out debug logs
+// console.log(...)
 
 export const API_ENDPOINTS = {
   AUTH: `${API_BASE_URL}/auth`,

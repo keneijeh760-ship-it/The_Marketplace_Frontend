@@ -10,6 +10,6 @@ export interface Transaction {
 }
 
 export const getMyTransactions = async (): Promise<Transaction[]> => {
-  const res = await api.get("/api/transactions/me");  // ← Add /api prefix
+  const res = await api.get("/api/transactions/me");  
   return res.data;
 };

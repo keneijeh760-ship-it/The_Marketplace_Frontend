@@ -13,11 +13,17 @@ const Dashboard = () => {
     try {
       setLoading(true);
       const data = await getMyTransactions();
-      setTransactions(data);
+      
+      console.log("📊 Transactions response:", data);
+      
+      // Ensure we have an array
+      const transactionsArray = Array.isArray(data) ? data : [];
+      setTransactions(transactionsArray);
       setError(null);
     } catch (err: any) {
+      console.error("❌ Error loading transactions:", err);
       setError("Failed to load transactions");
-      console.error(err);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -33,13 +39,9 @@ const Dashboard = () => {
       <div className="dashboard-container">
         <h1>Dashboard</h1>
 
-        {/* Account Information */}
         <AccountCard />
-
-        {/* Transfer Form */}
         <TransferForm onSuccess={fetchTransactions} />
 
-        {/* Transactions List */}
         <div className="transactions-section">
           <h2>Recent Transactions</h2>
           
@@ -64,11 +66,11 @@ const Dashboard = () => {
                   <tbody>
                     {transactions.map((tx) => (
                       <tr key={tx.id}>
-                        <td>{tx.fromAccountNumber}</td>
-                        <td>{tx.toAccountNumber}</td>
-                        <td>${tx.amount.toFixed(2)}</td>
-                        <td>{tx.status}</td>
-                        <td>{new Date(tx.timestamp).toLocaleString()}</td>
+                        <td>{tx.fromAccountNumber || 'N/A'}</td>
+                        <td>{tx.toAccountNumber || 'N/A'}</td>
+                        <td>${tx.amount?.toFixed(2) || '0.00'}</td>
+                        <td>{tx.status || 'UNKNOWN'}</td>
+                        <td>{tx.timestamp ? new Date(tx.timestamp).toLocaleString() : 'N/A'}</td>
                       </tr>
                     ))}
                   </tbody>
