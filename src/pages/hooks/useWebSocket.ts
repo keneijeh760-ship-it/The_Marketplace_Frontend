@@ -23,7 +23,11 @@ export const useWebSocket = (userId: number | null): UseWebSocketReturn => {
   useEffect(() => {
     if (!userId) return;
 
-    const wsUrl = import.meta.env.VITE_WS_URL || 'http://localhost:5000/ws';  // ✅ ADD FALLBACK
+    const rawWsUrl = import.meta.env.VITE_WS_URL || '';
+    const wsUrl =
+      rawWsUrl.trim().length === 0
+        ? (import.meta.env.PROD ? '/ws' : 'http://localhost:5000/ws')
+        : (import.meta.env.PROD && /^http:\/\//i.test(rawWsUrl) ? '/ws' : rawWsUrl);
     const socket = new SockJS(wsUrl);
     
     const client = new Client({

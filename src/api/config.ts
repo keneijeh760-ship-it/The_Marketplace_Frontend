@@ -1,8 +1,18 @@
 // src/api/config.ts
-export const API_BASE_URL =
+const rawApiBase =
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_BACKEND_URL ||
-  "http://localhost:5000";
+  "";
+
+const defaultApiBase = import.meta.env.PROD ? "/api" : "http://localhost:5000";
+const isInsecureHttp = /^http:\/\//i.test(rawApiBase);
+
+export const API_BASE_URL =
+  rawApiBase.trim().length === 0
+    ? defaultApiBase
+    : import.meta.env.PROD && isInsecureHttp
+      ? "/api"
+      : rawApiBase;
 
 export const API_ENDPOINTS = {
   AUTH: `${API_BASE_URL}/auth`,

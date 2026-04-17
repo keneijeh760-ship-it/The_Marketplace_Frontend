@@ -1,5 +1,17 @@
 {
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "http://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com/$1"
+    },
+    {
+      "source": "/ws/(.*)",
+      "destination": "http://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com/ws/$1"
+    },
+    {
+      "source": "/ws",
+      "destination": "http://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com/ws"
+    },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
