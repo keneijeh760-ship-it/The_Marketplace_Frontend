@@ -1,4 +1,3 @@
-import { API_ENDPOINTS } from './config';
 import { api } from "./client";
 
 export interface LoginRequest {
@@ -19,14 +18,12 @@ export interface AuthResponse {
   token: string;
 }
 
-const API_URL = API_ENDPOINTS.AUTH;
-
 export const login = async (credentials: LoginRequest): Promise<AuthResponse> => {
-  const response = await api.post(`${API_URL}/login`, credentials);
+  const response = await api.post("/auth/login", credentials);
   return response.data;
 };
 
 export const register = async (userData: RegisterRequest): Promise<AuthResponse> => {
-  const response = await api.post(`${API_URL}/register`, userData);
+  const response = await api.post("/auth/register", userData);
   return response.data;
 };
