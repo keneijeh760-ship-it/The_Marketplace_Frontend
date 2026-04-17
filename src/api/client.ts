@@ -1,8 +1,12 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
 
+// In proxy mode API_BASE_URL is "/api". Many request helpers already include
+// "/api/..." prefixes, so using "/api" as axios baseURL would produce "/api/api/...".
+const axiosBaseURL = API_BASE_URL === "/api" ? "" : API_BASE_URL;
+
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: axiosBaseURL,
 });
 
 api.interceptors.request.use((config) => {
