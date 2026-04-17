@@ -1,0 +1,15 @@
+# Ignore everything first
+*
+
+# Include only what we need
+!Dockerfile
+!target/
+!target/hope-0.0.1-SNAPSHOT.jar
+
+# Exclude git and other unnecessary files
+.git
+node_modules/
+*.iml
+*.log
+.DS_Store
+*.jar.original

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h1>WebSocket Test</h1>
+<div id="messages"></div>
+
+<script>
+    const socket = new SockJS('http://localhost:5000/ws');
+    const stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function(frame) {
+        console.log('Connected: ' + frame);
+
+        // Subscribe to user 1's notifications
+        stompClient.subscribe('/queue/1/notifications', function(message) {
+            console.log('Received:', JSON.parse(message.body));
+            const div = document.getElementById('messages');
+            div.innerHTML += '<p>' + message.body + '</p>';
+        });
+
+        console.log('Subscribed to /queue/1/notifications');
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# .dockerignore - Files to exclude from Docker build
+
+# Maven
+target/
+!target/hope-0.0.1-SNAPSHOT.jar
+pom.xml
+mvnw
+mvnw.cmd
+.mvn/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Test files
+src/test/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
