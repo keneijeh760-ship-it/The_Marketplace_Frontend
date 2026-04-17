@@ -1,9 +1,45 @@
+databases:
+  - name: marketplace-db
+    plan: free
+    databaseName: marketplace
+    user: marketplace
+
 services:
-  - type: static
-    name: The_Marketplace_Frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /.*
-        destination: /index.html
+  - type: web
+    name: marketplace-backend
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: marketplace-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: marketplace-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: marketplace-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: marketplace-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: marketplace-db
+          property: password
+      # AWS S3 creds are dummy placeholders - S3 image uploads will fail at
+      # runtime until real keys are provided, but the app will still boot.
+      - key: AWS_ACCESS_KEY_ID
+        value: dummy
+      - key: AWS_SECRET_ACCESS_KEY
+        value: dummy
+      - key: AWS_S3_REGION
+        value: us-east-1
+      - key: AWS_S3_BUCKET_NAME
+        value: dummy

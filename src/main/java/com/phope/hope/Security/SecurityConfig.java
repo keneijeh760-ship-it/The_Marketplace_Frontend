@@ -72,13 +72,16 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",           // React default
-                "http://localhost:5173",           // Vite default
-                "http://localhost:5174",           // ⬅️ ADD THIS (your current port)
-                "http://localhost:5000",           // Backend
-                "https://the-marketplace-frontend.onrender.com",  // Your Vercel app
-                "https://*.vercel.app" ,            // All Vercel preview deployments
+        // setAllowedOriginPatterns is required when combining wildcards with
+        // setAllowCredentials(true); setAllowedOrigins + wildcard silently
+        // drops the header in the response.
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://localhost:5000",
+                "https://*.vercel.app",
+                "https://*.onrender.com",
                 "https://d1xsk4nofp6p80.cloudfront.net"
         ));
 
@@ -92,7 +95,7 @@ public class SecurityConfig {
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/ws/**", configuration);
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 

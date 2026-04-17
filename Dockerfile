@@ -1,20 +1,20 @@
-# Dockerfile for Spring Boot Application
+# Multi-stage build: compile with Maven, run with Corretto 17.
 
-# Use Amazon Corretto 17 as base image (optimized for AWS)
-FROM amazoncorretto:17-alpine
-
-# Set working directory
+FROM maven:3.9-amazoncorretto-17 AS build
 WORKDIR /app
 
-# Copy the JAR file
-COPY target/hope-0.0.1-SNAPSHOT.jar app.jar
+COPY pom.xml ./
+RUN mvn -B -q -DskipTests dependency:go-offline
 
-# Expose port 5000
+COPY src ./src
+RUN mvn -B -DskipTests package
+
+FROM amazoncorretto:17-alpine
+WORKDIR /app
+COPY --from=build /app/target/hope-0.0.1-SNAPSHOT.jar app.jar
+
+# Render injects PORT at runtime. Fall back to 5000 for local use.
+ENV PORT=5000
 EXPOSE 5000
 
-# Set environment variables (will be overridden by Elastic Beanstalk)
-ENV SERVER_PORT=5000
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
-
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT} -jar app.jar"]
