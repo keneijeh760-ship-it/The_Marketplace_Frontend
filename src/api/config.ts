@@ -1,24 +1,18 @@
 // src/api/config.ts
-
-// Temporarily force to use deployed backend
-const isDevelopment =  true;  // ⬅️ Change this to false
-
-export const API_BASE_URL = isDevelopment 
-  ? 'http://localhost:5000'  
-  : (import.meta.env.VITE_BACKEND_URL || 'http://newhope-env-v2.eba-kcsug8jx.us-east-1.elasticbeanstalk.com');
-
-// Remove or comment out debug logs
-// console.log(...)
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_BACKEND_URL ||
+  "http://localhost:5000";
 
 export const API_ENDPOINTS = {
   AUTH: `${API_BASE_URL}/auth`,
   USERS: `${API_BASE_URL}/users`,
   ACCOUNTS: `${API_BASE_URL}/accounts`,
   PRODUCTS: `${API_BASE_URL}/products`,
-  CART: `${API_BASE_URL}/cart`,
-  ORDERS: `${API_BASE_URL}/orders`,
-  TRANSACTIONS: `${API_BASE_URL}/transactions`,
-  BANKING: `${API_BASE_URL}/banking`,
+  CART: `${API_BASE_URL}/api/cart`,
+  ORDERS: `${API_BASE_URL}/api/orders`,
+  TRANSACTIONS: `${API_BASE_URL}/api/transactions`,
+  BANKING: `${API_BASE_URL}/transfers`,
 };
 
 export const REQUEST_TIMEOUT = 30000;

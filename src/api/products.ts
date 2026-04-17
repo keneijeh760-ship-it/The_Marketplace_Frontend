@@ -1,5 +1,4 @@
-// src/api/products.ts
-import { API_ENDPOINTS, getAuthHeaders, getAuthToken } from './config';
+import { api } from "./client";
 
 export interface Product {
   id: number;
@@ -21,75 +20,69 @@ export interface CreateProductRequest {
   imageUrl?: string;
 }
 
-const API_URL = API_ENDPOINTS.PRODUCTS;
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  const err = error as {
+    response?: { data?: { message?: string } | string };
+    message?: string;
+  };
+
+  if (typeof err.response?.data === "object" && err.response?.data && "message" in err.response.data) {
+    return err.response.data.message || fallback;
+  }
+  if (typeof err.response?.data === "string" && err.response.data.trim()) {
+    return err.response.data;
+  }
+  return err.message || fallback;
+}
 
 export const getProducts = async (): Promise<Product[]> => {
-  const response = await fetch(API_URL);
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch products');
+  try {
+    const response = await api.get("/products");
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to fetch products"));
   }
-
-  return response.json();
 };
 
 export const createProduct = async (product: CreateProductRequest): Promise<Product> => {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(product),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to create product');
+  try {
+    const response = await api.post("/products", product);
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to create product"));
   }
-
-  return response.json();
 };
 
 export const updateProduct = async (id: number, product: Partial<CreateProductRequest>): Promise<Product> => {
-  const response = await fetch(`${API_URL}/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(product),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update product');
+  try {
+    const response = await api.put(`/products/${id}`, product);
+    return response.data;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to update product"));
   }
-
-  return response.json();
 };
 
 export const deleteProduct = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_URL}/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to delete product');
+  try {
+    await api.delete(`/products/${id}`);
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to delete product"));
   }
 };
 
 export const uploadImage = async (file: File): Promise<string> => {
   const formData = new FormData();
-  formData.append('image', file);
+  formData.append("image", file);
 
-  const token = getAuthToken();
-  const response = await fetch(`${API_URL}/upload-image`, {
-    method: 'POST',
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-      // Don't set Content-Type for FormData - browser will set it with boundary
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || 'Failed to upload image');
+  try {
+    const response = await api.post("/products/upload-image", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      responseType: "text",
+    });
+    return response.data as string;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Failed to upload image"));
   }
-
-  return response.text(); // Returns the S3 URL as plain text
 };

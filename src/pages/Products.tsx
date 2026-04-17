@@ -1,32 +1,44 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "./Navbar";
 import { getProducts, createProduct, deleteProduct, uploadImage, type Product } from "../api/products";
 import { addToCart } from "../api/Cart";
 import { useAuth } from "../auth/AuthContext";
+import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/marketplace/ProductCard";
+import { CreateListingModal } from "@/components/marketplace/CreateListingModal";
+import { Plus, Package, Search, SlidersHorizontal } from "lucide-react";
+
+function ProductSkeleton() {
+  return (
+    <div className="product-card">
+      <div className="skeleton aspect-square" />
+      <div className="p-4 space-y-3">
+        <div className="skeleton h-4 w-3/4 rounded" />
+        <div className="skeleton h-6 w-1/2 rounded" />
+        <div className="skeleton h-3 w-full rounded" />
+        <div className="skeleton h-10 w-full rounded-lg mt-4" />
+      </div>
+    </div>
+  );
+}
 
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
-
-  // Form state
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);  // ✅ NEW
-  const [imagePreview, setImagePreview] = useState<string | null>(null);  // ✅ NEW
-  const [uploadingImage, setUploadingImage] = useState(false);  // ✅ NEW
-  const [formError, setFormError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState("relevance");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [searchParams] = useSearchParams();
+  const searchQuery = (searchParams.get("search") || "").trim();
 
   const auth = useAuth();
-  const navigate = useNavigate();
 
   const fetchProducts = async () => {
     try {
@@ -46,83 +58,68 @@ const Products = () => {
     fetchProducts();
   }, []);
 
-  // ✅ NEW: Handle file selection
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setFormError('Please select an image file');
-        return;
-      }
+  const filteredProducts = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    const min = minPrice ? Number(minPrice) : null;
+    const max = maxPrice ? Number(maxPrice) : null;
 
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setFormError('Image must be less than 10MB');
-        return;
-      }
+    const result = products.filter((product) => {
+      const matchesSearch =
+        !query ||
+        product.name.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        product.seller?.name?.toLowerCase().includes(query);
 
-      setImageFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      
-      setFormError(null);
+      const matchesMin = min === null || product.price >= min;
+      const matchesMax = max === null || product.price <= max;
+
+      return matchesSearch && matchesMin && matchesMax;
+    });
+
+    if (sortBy === "price_asc") {
+      return [...result].sort((a, b) => a.price - b.price);
     }
-  };
+    if (sortBy === "price_desc") {
+      return [...result].sort((a, b) => b.price - a.price);
+    }
+    if (sortBy === "name") {
+      return [...result].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return result;
+  }, [products, searchQuery, minPrice, maxPrice, sortBy]);
 
-  // ✅ NEW: Remove selected image
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateListing = async (data: {
+    name: string;
+    price: number;
+    description: string;
+    imageFile: File | null;
+  }) => {
     setFormError(null);
     setFormLoading(true);
 
     try {
       let imageUrl = "";
 
-      // ✅ NEW: Upload image first if selected
-      if (imageFile) {
-        setUploadingImage(true);
+      if (data.imageFile) {
         try {
-          imageUrl = await uploadImage(imageFile);
-        } catch (err) {
+          imageUrl = await uploadImage(data.imageFile);
+        } catch {
           setFormError("Failed to upload image");
           setFormLoading(false);
-          setUploadingImage(false);
           return;
         }
-        setUploadingImage(false);
       }
 
-      // Create product with image URL
       await createProduct({
-        name,
-        price: Number(price),
-        description,
+        name: data.name,
+        price: data.price,
+        description: data.description,
         imageUrl,
       });
 
-      // Reset form
-      setName("");
-      setPrice("");
-      setDescription("");
-      handleRemoveImage();
-      setShowForm(false);
-
-      // Refresh products list
+      setShowModal(false);
       fetchProducts();
-    } catch (err: any) {
+    } catch (err) {
       setFormError("Failed to create product");
       console.error(err);
     } finally {
@@ -134,9 +131,7 @@ const Products = () => {
     setAddingToCart(productId);
     try {
       await addToCart({ productId, quantity: 1 });
-      alert("Product added to cart!");
     } catch (err) {
-      alert("Failed to add to cart");
       console.error(err);
     } finally {
       setAddingToCart(null);
@@ -144,266 +139,139 @@ const Products = () => {
   };
 
   const handleDeleteProduct = async (productId: number) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
-    
+    if (!window.confirm("Delete this listing?")) return;
+
     try {
       await deleteProduct(productId);
-      alert("Product deleted successfully!");
       fetchProducts();
     } catch (err) {
-      alert("Failed to delete product. You can only delete your own products.");
       console.error(err);
     }
   };
 
   return (
-    <div>
+    <div className="marketplace-shell">
       <Navbar />
-      <div className="dashboard-container">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
-          <h1>Products</h1>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <button
-              onClick={() => navigate("/cart")}
-              className="btn-secondary"
-              style={{ padding: "10px 20px" }}
-            >
-              🛒 View Cart
-            </button>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="btn-primary"
-              style={{ padding: "10px 20px" }}
-            >
-              {showForm ? "Cancel" : "Sell a Product"}
-            </button>
-          </div>
-        </div>
 
-        {/* Create Product Form */}
-        {showForm && (
-          <div className="transfer-form-container">
-            <h2>List Your Product for Sale</h2>
-            <form onSubmit={handleSubmit} className="transfer-form">
-              <div className="form-group">
-                <label>Product Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter product name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+      <div className="marketplace-container py-6">
+        <main>
+          <div className="mb-6 rounded-2xl border border-white/8 bg-[#141414] p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  {searchQuery ? `Search results for "${searchQuery}"` : "Marketplace Search"}
+                </h1>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {loading ? "Loading..." : `${filteredProducts.length} listings matched`}
+                </p>
               </div>
 
-              <div className="form-group">
-                <label>Price ($)</label>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => {
+                  setMinPrice("");
+                  setMaxPrice("");
+                  setSortBy("relevance");
+                }}>
+                  Reset filters
+                </Button>
+                <Button variant="buy" onClick={() => setShowModal(true)}>
+                  <Plus className="h-4 w-4" />
+                  List Product
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 border-t border-white/8 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="relative sm:col-span-2">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                <div className="rounded-lg border border-white/10 bg-neutral-900/50 px-10 py-2.5 text-sm text-neutral-400">
+                  {searchQuery || "Use the top search bar to find products by name, description, or seller"}
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-neutral-900/50 px-3 py-2 text-sm">
+                <SlidersHorizontal className="h-4 w-4 text-neutral-500" />
+                <span className="text-neutral-500">Sort</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full bg-transparent text-neutral-200 outline-none"
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="name">Name</option>
+                </select>
+              </label>
+
+              <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
-                  step="0.01"
                   min="0"
-                  placeholder="0.00"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  required
+                  step="0.01"
+                  placeholder="Min $"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className="rounded-lg border border-white/10 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-200 outline-none"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Max $"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="rounded-lg border border-white/10 bg-neutral-900/50 px-3 py-2 text-sm text-neutral-200 outline-none"
                 />
               </div>
-
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  placeholder="Enter product description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    resize: "vertical",
-                  }}
-                  required
-                />
-              </div>
-
-              {/* ✅ NEW: Image Upload Section */}
-              <div className="form-group">
-                <label>Product Image</label>
-                
-                {!imagePreview ? (
-                  <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
-                    {/* Take Photo Button */}
-                    <button
-                      type="button"
-                      onClick={() => cameraInputRef.current?.click()}
-                      className="btn-secondary"
-                      style={{ flex: 1, padding: "12px" }}
-                    >
-                      📷 Take Photo
-                    </button>
-                    
-                    {/* Choose File Button */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="btn-secondary"
-                      style={{ flex: 1, padding: "12px" }}
-                    >
-                      📁 Choose File
-                    </button>
-
-                    {/* Hidden file inputs */}
-                    <input
-                      ref={cameraInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleFileSelect}
-                      style={{ display: "none" }}
-                    />
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      style={{ display: "none" }}
-                    />
-                  </div>
-                ) : (
-                  <div style={{ marginTop: "12px" }}>
-                    {/* Image Preview */}
-                    <div style={{
-                      position: "relative",
-                      width: "100%",
-                      maxWidth: "300px",
-                      margin: "0 auto"
-                    }}>
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        style={{
-                          width: "100%",
-                          height: "auto",
-                          borderRadius: "8px",
-                          border: "2px solid #ddd"
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        style={{
-                          position: "absolute",
-                          top: "8px",
-                          right: "8px",
-                          background: "#e74c3c",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "50%",
-                          width: "32px",
-                          height: "32px",
-                          cursor: "pointer",
-                          fontSize: "18px"
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <p style={{ textAlign: "center", marginTop: "8px", fontSize: "14px", color: "#666" }}>
-                      {imageFile?.name}
-                    </p>
-                  </div>
-                )}
-
-                <small style={{ color: "#666", fontSize: "12px", marginTop: "4px", display: "block" }}>
-                  Upload a photo of your product (Max 10MB)
-                </small>
-              </div>
-
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                disabled={formLoading || uploadingImage}
-              >
-                {uploadingImage ? "Uploading Image..." : formLoading ? "Listing..." : "List Product"}
-              </button>
-            </form>
-
-            {formError && <div className="error-message">{formError}</div>}
+            </div>
           </div>
-        )}
 
-        {/* Products List */}
-        <div className="transactions-section">
-          <h2>All Products</h2>
-
-          {loading && <p className="loading">Loading products...</p>}
-          {error && <p className="error">{error}</p>}
-
-          {!loading && !error && (
-            <>
-              {products.length === 0 ? (
-                <p className="no-data">No products available.</p>
-              ) : (
-                <div className="products-grid">
-                  {products.map((product) => (
-                    <div key={product.id} className="product-card">
-                      {product.imageUrl && (
-                        <div className="product-image-container">
-                          <img 
-                            src={product.imageUrl} 
-                            alt={product.name}
-                            className="product-image"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      )}
-                      
-                      <h3>{product.name}</h3>
-                      <p className="product-price">${product.price.toFixed(2)}</p>
-                      
-                      {product.description && (
-                        <p className="product-description">{product.description}</p>
-                      )}
-
-                      {product.seller && (
-                        <p className="product-seller">
-                          Sold by: <strong>{product.seller.name}</strong>
-                        </p>
-                      )}
-
-                      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                        <button
-                          onClick={() => handleAddToCart(product.id)}
-                          className="btn-primary"
-                          disabled={addingToCart === product.id}
-                          style={{ flex: 1 }}
-                        >
-                          {addingToCart === product.id ? "Adding..." : "Add to Cart"}
-                        </button>
-                        
-                        {product.seller && auth.token && (
-                          <button
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="btn-remove"
-                            style={{ padding: "8px 12px" }}
-                            title="Delete this product"
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+          {error && (
+            <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              {error}
+            </div>
           )}
-        </div>
+
+          {loading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ProductSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-[#141414] py-20">
+              <Package className="h-12 w-12 text-neutral-600" />
+              <p className="mt-4 text-neutral-400">No products found with these filters</p>
+              <Button variant="buy" className="mt-4" onClick={() => setShowModal(true)}>
+                <Plus className="h-4 w-4" />
+                Create a listing
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={handleAddToCart}
+                  onDelete={handleDeleteProduct}
+                  isAddingToCart={addingToCart === product.id}
+                  canDelete={!!auth.token && !!product.seller}
+                />
+              ))}
+            </div>
+          )}
+        </main>
       </div>
+
+      <CreateListingModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleCreateListing}
+        isLoading={formLoading}
+        error={formError}
+      />
     </div>
   );
 };

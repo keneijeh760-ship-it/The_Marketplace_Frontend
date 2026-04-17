@@ -1,23 +1,41 @@
 import { useState, useEffect } from "react";
 import Navbar from "./Navbar";
-import { 
-  getDashboardStats, 
+import {
+  getDashboardStats,
   getPendingEscrowOrders,
   getAllUsers,
   getAllTransactions,
-  type DashboardStats 
+  type AdminOrder,
+  type AdminTransaction,
+  type DashboardStats,
+  type UserBalance,
 } from "../api/admin";
 import { releaseEscrow, refundOrder } from "../api/orders";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import {
+  Settings,
+  BarChart3,
+  Package,
+  Users,
+  CreditCard,
+  DollarSign,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
+
+type Tab = "overview" | "orders" | "users" | "transactions";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
-  const [allUsers, setAllUsers] = useState<any[]>([]);
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<AdminOrder[]>([]);
+  const [allUsers, setAllUsers] = useState<UserBalance[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<AdminTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'users' | 'transactions'>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   const fetchData = async () => {
     try {
@@ -31,7 +49,7 @@ const AdminDashboard = () => {
       setStats(statsData);
       setPendingOrders(ordersData);
       setAllUsers(usersData);
-      setRecentTransactions(transactionsData.slice(0, 10)); // Last 10 transactions
+      setRecentTransactions(transactionsData.slice(0, 10));
     } catch (err) {
       setError("Failed to load dashboard data");
       console.error(err);
@@ -46,426 +64,267 @@ const AdminDashboard = () => {
 
   const handleReleaseEscrow = async (orderId: number) => {
     if (!window.confirm("Release escrow and pay seller?")) return;
-    
     setActionLoading(orderId);
     try {
       await releaseEscrow(orderId);
-      alert("Escrow released successfully! Seller has been paid.");
-      fetchData(); // Refresh data
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to release escrow");
-      console.error(err);
+      fetchData();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      alert(e.response?.data?.message || "Failed to release escrow");
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleRefund = async (orderId: number) => {
-    if (!window.confirm("Refund this order? Money will be returned to buyer.")) return;
-    
+    if (!window.confirm("Refund this order?")) return;
     setActionLoading(orderId);
     try {
       await refundOrder(orderId);
-      alert("Order refunded successfully! Money returned to buyer.");
-      fetchData(); // Refresh data
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to refund order");
-      console.error(err);
+      fetchData();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      alert(e.response?.data?.message || "Failed to refund");
     } finally {
       setActionLoading(null);
     }
   };
 
+  const tabs: { id: Tab; label: string; icon: typeof BarChart3; count?: number }[] = [
+    { id: "overview", label: "Overview", icon: BarChart3 },
+    { id: "orders", label: "Orders", icon: Package, count: pendingOrders.length },
+    { id: "users", label: "Users", icon: Users, count: allUsers.length },
+    { id: "transactions", label: "Transactions", icon: CreditCard },
+  ];
+
   if (loading) {
     return (
-      <div>
+      <div className="marketplace-shell">
         <Navbar />
-        <div className="dashboard-container">
-          <p className="loading">Loading admin dashboard...</p>
+        <div className="marketplace-container py-8">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="skeleton h-28 rounded-xl" />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="marketplace-shell">
       <Navbar />
-      <div className="dashboard-container">
-        <h1>⚙️ Admin Dashboard</h1>
+
+      <div className="marketplace-container py-8">
+        <div className="mb-6 flex items-center gap-3">
+          <Settings className="h-6 w-6 text-neutral-400" />
+          <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
+        </div>
 
         {error && (
-          <div className="error" style={{ marginBottom: "20px" }}>
+          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <div style={{
-          display: "flex",
-          gap: "10px",
-          marginBottom: "30px",
-          borderBottom: "2px solid #eee",
-          paddingBottom: "10px"
-        }}>
-          <button
-            onClick={() => setActiveTab('overview')}
-            style={{
-              padding: "10px 20px",
-              background: activeTab === 'overview' ? '#667eea' : 'transparent',
-              color: activeTab === 'overview' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'overview' ? '600' : '400',
-              transition: 'all 0.2s'
-            }}
-          >
-            📊 Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('orders')}
-            style={{
-              padding: "10px 20px",
-              background: activeTab === 'orders' ? '#667eea' : 'transparent',
-              color: activeTab === 'orders' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'orders' ? '600' : '400',
-              transition: 'all 0.2s'
-            }}
-          >
-            📦 Orders ({pendingOrders.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            style={{
-              padding: "10px 20px",
-              background: activeTab === 'users' ? '#667eea' : 'transparent',
-              color: activeTab === 'users' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'users' ? '600' : '400',
-              transition: 'all 0.2s'
-            }}
-          >
-            👥 Users ({allUsers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('transactions')}
-            style={{
-              padding: "10px 20px",
-              background: activeTab === 'transactions' ? '#667eea' : 'transparent',
-              color: activeTab === 'transactions' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'transactions' ? '600' : '400',
-              transition: 'all 0.2s'
-            }}
-          >
-            💳 Transactions
-          </button>
+        <div className="mb-6 flex gap-2 border-b border-white/8 pb-4">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  activeTab === tab.id
+                    ? "bg-blue-600 text-white"
+                    : "text-neutral-400 hover:bg-white/5 hover:text-white"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+                {tab.count !== undefined && (
+                  <span className={cn(
+                    "ml-1 rounded-full px-2 py-0.5 text-xs",
+                    activeTab === tab.id ? "bg-white/20" : "bg-white/10"
+                  )}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Overview Tab */}
-        {activeTab === 'overview' && stats && (
-          <div>
-            {/* Stats Cards */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "20px",
-              marginBottom: "40px"
-            }}>
-              <div className="stat-card">
-                <div className="stat-value">{stats.totalOrders}</div>
-                <div className="stat-label">Total Orders</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">${stats.totalRevenue.toFixed(2)}</div>
-                <div className="stat-label">Total Revenue</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value" style={{ color: '#f39c12' }}>
-                  ${stats.pendingEscrow.toFixed(2)}
-                </div>
-                <div className="stat-label">Pending Escrow</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{stats.totalUsers}</div>
-                <div className="stat-label">Total Users</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value" style={{ color: '#e74c3c' }}>
-                  ${stats.totalRefunded.toFixed(2)}
-                </div>
-                <div className="stat-label">Total Refunded</div>
-              </div>
+        {activeTab === "overview" && stats && (
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: "Total Orders", value: stats.totalOrders, icon: Package, color: "blue" },
+                { label: "Revenue", value: `$${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "green" },
+                { label: "Pending Escrow", value: `$${stats.pendingEscrow.toFixed(2)}`, icon: AlertCircle, color: "yellow" },
+                { label: "Total Users", value: stats.totalUsers, icon: Users, color: "purple" },
+              ].map((stat) => {
+                const Icon = stat.icon;
+                return (
+                  <div key={stat.label} className="rounded-xl border border-white/8 bg-[#141414] p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-neutral-500">{stat.label}</span>
+                      <Icon className={cn("h-5 w-5", `text-${stat.color}-400`)} />
+                    </div>
+                    <div className="mt-2 text-2xl font-bold text-white">{stat.value}</div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Orders by Status */}
-            <div style={{
-              background: 'white',
-              padding: '24px',
-              borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              marginBottom: '30px'
-            }}>
-              <h3 style={{ marginBottom: '20px' }}>Orders by Status</h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: '15px'
-              }}>
+            <div className="rounded-xl border border-white/8 bg-[#141414] p-5">
+              <h3 className="mb-4 text-lg font-semibold text-white">Orders by Status</h3>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {Object.entries(stats.ordersByStatus).map(([status, count]) => (
-                  <div key={status} style={{
-                    padding: '15px',
-                    background: '#f8f9fa',
-                    borderRadius: '8px',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea' }}>
-                      {count}
-                    </div>
-                    <div style={{ fontSize: '13px', color: '#666', marginTop: '5px' }}>
-                      {status}
-                    </div>
+                  <div key={status} className="rounded-lg bg-neutral-900/50 p-4 text-center">
+                    <div className="text-2xl font-bold text-white">{count}</div>
+                    <div className="mt-1 text-xs uppercase tracking-wider text-neutral-500">{status}</div>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Quick Actions */}
-            <div style={{
-              background: 'white',
-              padding: '24px',
-              borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-            }}>
-              <h3 style={{ marginBottom: '20px' }}>Quick Stats</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #eee' }}>
-                  <span style={{ color: '#666' }}>Pending Escrow Orders:</span>
-                  <span style={{ fontWeight: '600', color: '#f39c12' }}>{pendingOrders.length}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #eee' }}>
-                  <span style={{ color: '#666' }}>Platform Users:</span>
-                  <span style={{ fontWeight: '600', color: '#667eea' }}>{allUsers.length}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
-                  <span style={{ color: '#666' }}>Recent Transactions:</span>
-                  <span style={{ fontWeight: '600', color: '#667eea' }}>{recentTransactions.length}</span>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* Orders Tab */}
-        {activeTab === 'orders' && (
-          <div className="transactions-section">
-            <h2>Orders Pending Escrow Release ({pendingOrders.length})</h2>
-            
+        {activeTab === "orders" && (
+          <div className="rounded-xl border border-white/8 bg-[#141414]">
+            <div className="border-b border-white/8 p-5">
+              <h3 className="text-lg font-semibold text-white">Pending Escrow Orders</h3>
+            </div>
             {pendingOrders.length === 0 ? (
-              <div style={{
-                background: 'white',
-                padding: '60px',
-                borderRadius: '12px',
-                textAlign: 'center',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}>
-                <p className="no-data">✅ No orders pending escrow release</p>
-                <p style={{ color: '#666', marginTop: '10px', fontSize: '14px' }}>
-                  All orders have been processed or there are no pending payments.
-                </p>
+              <div className="p-12 text-center">
+                <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+                <p className="mt-4 text-neutral-400">No pending escrow orders</p>
               </div>
             ) : (
-              <table className="transactions-table">
-                <thead>
-                  <tr>
-                    <th>Order ID</th>
-                    <th>Buyer</th>
-                    <th>Seller</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Payment</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingOrders.map((order) => (
-                    <tr key={order.id}>
-                      <td>#{order.id}</td>
-                      <td>{order.user?.name || 'N/A'}</td>
-                      <td>{order.seller?.name || 'N/A'}</td>
-                      <td style={{ fontWeight: '600' }}>${order.total.toFixed(2)}</td>
-                      <td>
-                        <span style={{
-                          padding: "6px 10px",
-                          borderRadius: "6px",
-                          background: "#f39c12",
-                          color: "white",
-                          fontSize: "12px",
-                          fontWeight: '600'
-                        }}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{
-                          padding: "6px 10px",
-                          borderRadius: "6px",
-                          background: order.paymentStatus === 'PAID' ? '#3498db' : '#95a5a6',
-                          color: "white",
-                          fontSize: "12px",
-                          fontWeight: '600'
-                        }}>
-                          {order.paymentStatus || 'UNKNOWN'}
-                        </span>
-                      </td>
-                      <td>{new Date(order.createdAt).toLocaleDateString()}</td>
-                      <td>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button
-                            onClick={() => handleReleaseEscrow(order.id)}
-                            disabled={actionLoading === order.id}
-                            className="btn-primary"
-                            style={{ 
-                              padding: "8px 12px", 
-                              fontSize: "12px",
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {actionLoading === order.id ? "⏳" : "✅ Release"}
-                          </button>
-                          <button
-                            onClick={() => handleRefund(order.id)}
-                            disabled={actionLoading === order.id}
-                            className="btn-remove"
-                            style={{ 
-                              padding: "8px 12px", 
-                              fontSize: "12px",
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            {actionLoading === order.id ? "⏳" : "↩️ Refund"}
-                          </button>
-                        </div>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-white/8 bg-neutral-900/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Order</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Buyer</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Seller</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Total</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Status</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {pendingOrders.map((order) => (
+                      <tr key={order.id} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="px-4 py-3 font-medium text-white">#{order.id}</td>
+                        <td className="px-4 py-3 text-neutral-300">{order.user?.name || "N/A"}</td>
+                        <td className="px-4 py-3 text-neutral-300">{order.seller?.name || "N/A"}</td>
+                        <td className="px-4 py-3 font-medium text-white">${order.total.toFixed(2)}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant="pending">{order.status}</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="buy"
+                              disabled={actionLoading === order.id}
+                              onClick={() => handleReleaseEscrow(order.id)}
+                            >
+                              Release
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={actionLoading === order.id}
+                              onClick={() => handleRefund(order.id)}
+                            >
+                              Refund
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
 
-        {/* Users Tab */}
-        {activeTab === 'users' && (
-          <div className="transactions-section">
-            <h2>Platform Users ({allUsers.length})</h2>
-            
-            {allUsers.length === 0 ? (
-              <p className="no-data">No users found</p>
-            ) : (
-              <table className="transactions-table">
-                <thead>
+        {activeTab === "users" && (
+          <div className="rounded-xl border border-white/8 bg-[#141414]">
+            <div className="border-b border-white/8 p-5">
+              <h3 className="text-lg font-semibold text-white">Platform Users</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-white/8 bg-neutral-900/50">
                   <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Total Balance</th>
-                    <th>Accounts</th>
+                    <th className="px-4 py-3 text-left font-medium text-neutral-400">ID</th>
+                    <th className="px-4 py-3 text-left font-medium text-neutral-400">Name</th>
+                    <th className="px-4 py-3 text-left font-medium text-neutral-400">Email</th>
+                    <th className="px-4 py-3 text-left font-medium text-neutral-400">Role</th>
+                    <th className="px-4 py-3 text-left font-medium text-neutral-400">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
                   {allUsers.map((user) => (
-                    <tr key={user.userId}>
-                      <td>{user.userId}</td>
-                      <td style={{ fontWeight: '600' }}>{user.name}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <span style={{
-                          padding: "6px 10px",
-                          borderRadius: "6px",
-                          background: user.role === 'ADMIN' ? '#e74c3c' : '#3498db',
-                          color: "white",
-                          fontSize: "12px",
-                          fontWeight: '600'
-                        }}>
-                          {user.role}
-                        </span>
+                    <tr key={user.userId} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="px-4 py-3 text-neutral-500">{user.userId}</td>
+                      <td className="px-4 py-3 font-medium text-white">{user.name}</td>
+                      <td className="px-4 py-3 text-neutral-300">{user.email}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>{user.role}</Badge>
                       </td>
-                      <td style={{ fontWeight: '600', color: '#27ae60' }}>
-                        ${user.totalBalance.toFixed(2)}
-                      </td>
-                      <td>{user.accountCount}</td>
+                      <td className="px-4 py-3 font-medium text-green-400">${user.totalBalance.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
+            </div>
           </div>
         )}
 
-        {/* Transactions Tab */}
-        {activeTab === 'transactions' && (
-          <div className="transactions-section">
-            <h2>Recent Transactions</h2>
-            
+        {activeTab === "transactions" && (
+          <div className="rounded-xl border border-white/8 bg-[#141414]">
+            <div className="border-b border-white/8 p-5">
+              <h3 className="text-lg font-semibold text-white">Recent Transactions</h3>
+            </div>
             {recentTransactions.length === 0 ? (
-              <p className="no-data">No transactions yet</p>
+              <div className="p-12 text-center text-neutral-400">No transactions yet</div>
             ) : (
-              <table className="transactions-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>From Account</th>
-                    <th>To Account</th>
-                    <th>Amount</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentTransactions.map((tx) => (
-                    <tr key={tx.id}>
-                      <td>#{tx.id}</td>
-                      <td>{tx.fromAccountNumber || 'Escrow'}</td>
-                      <td>{tx.toAccountNumber || 'Escrow'}</td>
-                      <td style={{ fontWeight: '600', color: '#27ae60' }}>
-                        ${tx.amount.toFixed(2)}
-                      </td>
-                      <td>
-                        <span style={{
-                          fontSize: '12px',
-                          color: '#666'
-                        }}>
-                          {tx.type || 'TRANSFER'}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{
-                          padding: "6px 10px",
-                          borderRadius: "6px",
-                          background: tx.status === 'COMPLETED' ? '#27ae60' : '#95a5a6',
-                          color: "white",
-                          fontSize: "12px",
-                          fontWeight: '600'
-                        }}>
-                          {tx.status}
-                        </span>
-                      </td>
-                      <td>{new Date(tx.timestamp).toLocaleString()}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-white/8 bg-neutral-900/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">ID</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">From</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">To</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Amount</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Status</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-400">Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recentTransactions.map((tx) => (
+                      <tr key={tx.id} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="px-4 py-3 text-neutral-500">#{tx.id}</td>
+                        <td className="px-4 py-3 text-neutral-300">{tx.fromAccountNumber || "Escrow"}</td>
+                        <td className="px-4 py-3 text-neutral-300">{tx.toAccountNumber || "Escrow"}</td>
+                        <td className="px-4 py-3 font-medium text-white">${tx.amount.toFixed(2)}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant={tx.status === "SUCCESS" ? "success" : "secondary"}>{tx.status}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-neutral-500">{new Date(tx.timestamp).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}

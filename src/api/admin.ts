@@ -23,9 +23,44 @@ export interface UserDetails {
   name: string;
   email: string;
   role: string;
-  accounts: any[];
+  accounts: AccountSummary[];
   totalOrders: number;
   totalSpent: number;
+}
+
+export interface AccountSummary {
+  id: number;
+  accountNumber: number;
+  balance: number;
+  bankName?: string;
+}
+
+export interface AdminOrder {
+  id: number;
+  total: number;
+  status: string;
+  paymentStatus?: string;
+  createdAt: string;
+  user?: {
+    id: number;
+    name: string;
+    email?: string;
+  };
+  seller?: {
+    id: number;
+    name: string;
+    email?: string;
+  };
+}
+
+export interface AdminTransaction {
+  id: number;
+  fromAccountNumber: number;
+  toAccountNumber: number;
+  amount: number;
+  status: string;
+  timestamp: string;
+  type?: string;
 }
 
 // Dashboard stats
@@ -46,23 +81,23 @@ export const getUserDetails = async (userId: number): Promise<UserDetails> => {
 };
 
 // Order management
-export const getPendingEscrowOrders = async (): Promise<any[]> => {
+export const getPendingEscrowOrders = async (): Promise<AdminOrder[]> => {
   const res = await api.get("/api/admin/orders/pending-escrow");
   return res.data;
 };
 
-export const getOrdersByStatus = async (status: string): Promise<any[]> => {
+export const getOrdersByStatus = async (status: string): Promise<AdminOrder[]> => {
   const res = await api.get(`/api/admin/orders/status/${status}`);
   return res.data;
 };
 
 // Transaction management
-export const getAllTransactions = async (): Promise<any[]> => {
+export const getAllTransactions = async (): Promise<AdminTransaction[]> => {
   const res = await api.get("/api/admin/transactions");
   return res.data;
 };
 
-export const getTransactionsByType = async (type: string): Promise<any[]> => {
+export const getTransactionsByType = async (type: string): Promise<AdminTransaction[]> => {
   const res = await api.get(`/api/admin/transactions/type/${type}`);
   return res.data;
 };

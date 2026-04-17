@@ -203,7 +203,7 @@ public class OrderService {
 
         BigDecimal total = order.getTotal();
 
-        sellerAccount.setBalance(sellerAccount.getBalance().subtract(total));
+        sellerAccount.setBalance(sellerAccount.getBalance().add(total));
         accountRepository.save(sellerAccount);
         Transaction releaseTransaction = new Transaction();
         releaseTransaction.setFrom(null);  // From escrow (conceptual)

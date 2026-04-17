@@ -94,7 +94,7 @@ public class AuthController {
             User user = new User(
                     request.getName(),
                     request.getEmail(),
-                    request.getPassword(),
+                    passwordEncoder.encode(request.getPassword()),
                     Role.ADMIN
             );
 
@@ -121,18 +121,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
         try {
-            System.out.println("🔍 Login attempt for: " + request.getEmail());
-
-            // Load user from database
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            System.out.println("User found: " + user.getEmail());
-            System.out.println(" Stored hash: " + user.getPassword());
-            System.out.println(" Input password: " + request.getPassword());
-
             boolean matches = passwordEncoder.matches(request.getPassword(), user.getPassword());
-            System.out.println(" Password matches: " + matches);
 
             if (!matches) {
                 return ResponseEntity.status(401).body("Invalid credentials - password does not match");
@@ -147,11 +139,8 @@ public class AuthController {
 
             return ResponseEntity.ok(new LoginResponseDTO(token));
         } catch (BadCredentialsException e) {
-            System.err.println(" Bad credentials: " + e.getMessage());
             return ResponseEntity.status(401).body("Invalid email or password");
         } catch (Exception e) {
-            System.err.println("Login error: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body("Login failed: " + e.getMessage());
         }
     }

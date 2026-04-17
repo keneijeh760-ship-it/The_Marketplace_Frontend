@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AdminRoute } from "./auth/AdminRoute";
 import { useWebSocket } from "./pages/hooks/useWebSocket";
-import { NotificationToast } from "./pages//NotificationToast";
+import { NotificationToast } from "./pages/NotificationToast";
 import CreateUser from "./pages/CreateUser";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -17,7 +17,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 // Inner component that has access to auth
 function AppRoutes() {
-  const { userId } = useAuth();
+  const { userId, token } = useAuth();
   const { connected, notifications } = useWebSocket(userId);
   const [visibleNotifications, setVisibleNotifications] = useState(notifications);
 
@@ -95,6 +95,7 @@ function AppRoutes() {
             </AdminRoute>
           }
         />
+        <Route path="*" element={<Navigate to={token ? "/" : "/login"} replace />} />
       </Routes>
 
       {/* Real-time notifications */}
@@ -103,21 +104,10 @@ function AppRoutes() {
         onDismiss={dismissNotification}
       />
 
-      {/* Connection indicator */}
       {connected && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          padding: '8px 12px',
-          backgroundColor: '#10b981',
-          color: 'white',
-          borderRadius: '20px',
-          fontSize: '12px',
-          fontWeight: '600',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        }}>
-          🟢 Live
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border border-green-500/30 bg-[#141414] px-3 py-1.5 text-xs font-medium text-green-400 shadow-lg">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" aria-hidden />
+          Connected
         </div>
       )}
     </>

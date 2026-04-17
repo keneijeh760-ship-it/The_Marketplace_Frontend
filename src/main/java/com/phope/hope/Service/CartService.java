@@ -10,6 +10,7 @@ import com.phope.hope.Repository.ProductRepository;
 import com.phope.hope.exception.CartItemNotFoundException;
 import com.phope.hope.exception.ProductNotFoundException;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -54,8 +55,9 @@ public class CartService {
         CartItem cartItem = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new CartItemNotFoundException(String.valueOf(cartItemId)));
 
-        // Verify the cart item belongs to the user
-
+        if (cartItem.getUser().getId() != user.getId()) {
+            throw new AccessDeniedException("Cart item does not belong to the current user");
+        }
 
         if (quantity <= 0) {
             cartItemRepository.delete(cartItem);
@@ -73,8 +75,9 @@ public class CartService {
         CartItem cartItem = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new CartItemNotFoundException(String.valueOf(cartItemId)));
 
-        // Verify the cart item belongs to the user
-
+        if (cartItem.getUser().getId() != user.getId()) {
+            throw new AccessDeniedException("Cart item does not belong to the current user");
+        }
 
         cartItemRepository.delete(cartItem);
     }

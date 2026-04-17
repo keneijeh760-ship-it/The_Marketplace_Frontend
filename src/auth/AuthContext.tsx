@@ -5,6 +5,7 @@ interface AuthContextType {
   token: string | null;
   role: string | null;
   userId: number | null;
+  authLoading: boolean;
   login: (token: string) => void;
   logout: () => void;
   isAdmin: () => boolean;
@@ -23,10 +24,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const stored = localStorage.getItem("userId");
     return stored ? Number(stored) : null;
   });
+  const [authLoading, setAuthLoading] = useState<boolean>(!!token);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (token) {  // ✅ FIXED: Fetch whenever we have a token
+        setAuthLoading(true);
         try {
           const response = await api.get("/users/me");
           const userRole = response.data.role;
@@ -42,7 +45,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
           console.error("Failed to fetch user data", error);
           logout();
+        } finally {
+          setAuthLoading(false);
         }
+      } else {
+        setAuthLoading(false);
       }
     };
 
@@ -55,6 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("userId");
     setRole(null);
     setUserId(null);
+    setAuthLoading(true);
     
     localStorage.setItem("token", newToken);
     setToken(newToken);
@@ -67,6 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken(null);
     setRole(null);
     setUserId(null);
+    setAuthLoading(false);
   };
 
   const isAdmin = () => {
@@ -75,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, role, userId, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{ token, role, userId, authLoading, login, logout, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

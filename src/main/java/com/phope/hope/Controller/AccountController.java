@@ -1,7 +1,6 @@
 package com.phope.hope.Controller;
 
 import com.phope.hope.Entity.Account;
-import com.phope.hope.Repository.AccountRepository;
 import com.phope.hope.Service.AccountService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -24,26 +23,25 @@ public class AccountController {
     }
 
     @GetMapping()
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public List<Account> getAllAccounts() {
         return accountService.getAllAccounts();
     }
+
     @PostMapping()
-    public Account createAccount(Account account) {
+    public Account createAccount(@RequestBody Account account) {
         return accountService.createAccount(account);
     }
-    @PatchMapping()
-    public Account updateAccount(Account account) {
+
+    @PatchMapping("/{id}")
+    public Account updateAccount(@PathVariable Long id, @RequestBody Account account) {
+        account.setId(id);
         return accountService.updateAccount(account);
     }
 
-    @DeleteMapping()
-    @PreAuthorize("hasRole('ADMIN')")
-    public void DeleteAccountById(Long Id){
-        accountService.deleteAccount(Id);
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public void deleteAccountById(@PathVariable Long id){
+        accountService.deleteAccount(id);
     }
-
-
-
-
 }
